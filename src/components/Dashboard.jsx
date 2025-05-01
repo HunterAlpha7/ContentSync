@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useUser, UserButton } from "@clerk/clerk-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -8,6 +9,8 @@ export default function Dashboard() {
   const [showWIP, setShowWIP] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState(null);
+  const [locationAvailable, setLocationAvailable] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Update time every second
@@ -20,14 +23,16 @@ export default function Dashboard() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setLocation(true);
+          setLocation({ latitude, longitude });
+          setLocationAvailable(true);
         },
-        () => {
-          setLocation(false);
+        (error) => {
+          console.error('Error getting location:', error);
+          setLocationAvailable(false);
         }
       );
     } else {
-      setLocation(false);
+      setLocationAvailable(false);
     }
 
     return () => clearInterval(timer);
@@ -35,13 +40,19 @@ export default function Dashboard() {
 
   const handleOptionClick = (option) => {
     setSelectedOption(option);
-    if (option !== 'blog') {
+    if (option === 'blog') {
+      navigate('/blog-generator');
+    } else {
       setShowWIP(true);
       setTimeout(() => {
         setShowWIP(false);
         setSelectedOption(null);
       }, 2000);
     }
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -58,7 +69,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <img src="/src/assets/images/logo.svg" alt="ContentSync" className="h-8 w-auto" />
+              <img src="/src/assets/images/logo.svg" alt="ContentSync" className="h-12 w-auto" />
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-[#00FF9D]">{user?.firstName || 'User'}</span>
@@ -96,7 +107,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm text-gray-400">Current Time</p>
                 <p className="text-xl font-semibold">
-                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatTime(currentTime)}
                 </p>
               </div>
             </div>
@@ -104,7 +115,7 @@ export default function Dashboard() {
               <span className="text-2xl">📍</span>
               <div>
                 <p className="text-sm text-gray-400">Location</p>
-                {location ? (
+                {locationAvailable ? (
                   <p className="text-xl font-semibold text-[#00FF9D]">
                     Local specialization available
                   </p>
